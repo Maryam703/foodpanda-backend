@@ -1,0 +1,24 @@
+import express from "express"
+import cookieParser from "cookie-parser";
+import cors from "cors"
+
+const app = express()
+
+app.use(cookieParser());
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: "20mb" }));
+app.use(express.static("temp"));
+app.use(cors({ 
+    origin: process.env.CORS_ORIGIN, 
+    credentials: true
+}))
+
+import userRoutes from "./routes/User-routes.js"
+import orderRoutes from "./routes/Order-routes.js"
+import productRoutes from "./routes/Product-routes.js"
+
+app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/order", orderRoutes);
+app.use("/api/v1/product", productRoutes)
+
+export default app;
