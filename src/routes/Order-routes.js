@@ -12,9 +12,9 @@ import { upload } from "../middleware/multer-middleware.js";
 const router = Router();
 
 router.route("/create-new-order").post(isUserAuthenticated, upload.single("image"), createOrder)
-router.route("/get-order").get(isUserAuthenticated, getOrderByOrderId);
+router.route("/get-order/:orderId").get(isUserAuthenticated, getOrderByOrderId);
 router.route("/get-all-orders").get(isUserAuthenticated, getAllOrders);
-router.route("/update-order-status").patch(isUserAuthenticated, updateOrderStatus);
-router.route("/delete-order").delete(isUserAuthenticated, deleteOrder);
+router.route("/update-order-status/:orderId").patch(isUserAuthenticated, updateOrderStatus);
+router.route("/delete-order/:orderId").delete(isUserAuthenticated, deleteOrder);
 
 export default router;

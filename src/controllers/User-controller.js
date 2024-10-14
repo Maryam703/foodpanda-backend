@@ -2,12 +2,12 @@ import AsyncHandler from "../utils/AsyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user-model.js";
 import uploadFileOnCloudinary from "../utils/Cloudinary.js"
+import jwt from "jsonwebtoken"
 
 const createUser = AsyncHandler(async(req, res) => {
-   
     const {name, email, password, adress, city, contact, role} = req.body;
 
-    let emptyField = [name, email, password, adress, city, contact, role].find((field) => field.trim() === "")
+    let emptyField = [name, email, password, adress, city, contact, role].some((field) => field?.trim() === "")
 
     if (emptyField) {
        throw new ApiError(404, "all fields are required")        
@@ -22,11 +22,8 @@ const createUser = AsyncHandler(async(req, res) => {
     if (existingUser) {
         throw new ApiError(402, "email already exist!")
     }
-    console.log(req.files)
 
-    let localPathUrl = req.files?.[0]?.path;
-
-    console.log(localPathUrl)
+    let localPathUrl = req.file?.path;
 
     let file = await uploadFileOnCloudinary(localPathUrl)
 
@@ -34,7 +31,7 @@ const createUser = AsyncHandler(async(req, res) => {
         throw new ApiError(509, "server error. file couldn't uploaded on cloudinary!")
     }
 
-    let user = {
+    let userData = {
         name,
         email,
         password,
@@ -45,7 +42,7 @@ const createUser = AsyncHandler(async(req, res) => {
         role
     }
 
-    const createdUser = await User.create(user).select("-password refreshToken");
+    const createdUser = await User.create(userData);
     
     if (!createdUser) {
         throw new ApiError(500, "Server Error! user not created!")
@@ -62,21 +59,29 @@ const createUser = AsyncHandler(async(req, res) => {
 const loginUser = AsyncHandler(async(req, res) => {
     const {email, password} = req.body;
 
-    if (email.tirm() || password.trim() === "") {
+    if (email?.trim() === "" ) {
         throw new ApiError(404, "All fields are required")        
     }
 
-    const user = await User.findOne({email}).select("-password refreshToken");
-    
+    const user = await User.findOne({email});
+
     if (!user) {
-        throw new ApiError(500, "enter correct email!")
+        throw new ApiError(500, "enter valid email!")
     }
 
-    let isPasswordValid = await user.isPasswordCorrect(password)
+    const isPasswordValid = await user.isPasswordCorrect(password)
 
     if (!isPasswordValid) {
         throw new ApiError(500, "you entered incorrect password!")
     }
+
+    const accessToken = await user.generateAccessToken();
+    const refreshToken = await user.generateRefreshToken();
+
+    user.refreshToken = refreshToken;
+    await user.save({
+        validateBeforeSave : false
+    });
 
     let options = {
         httpOnly : true,
@@ -90,6 +95,23 @@ const loginUser = AsyncHandler(async(req, res) => {
     .json({
         user,
         message:"user fetched successfully!"
+    })
+})
+
+const getCurrentUser = AsyncHandler(async(req, res) => {
+    let user = await User.findById(req.user?._id)
+
+    console.log(user)
+
+    if (!user) {
+        throw new ApiError(500, "user not found!")
+    }
+    
+    return res
+    .status(200)
+    .json({
+        user,
+        message : "user fetched successfully!"
     })
 })
 
@@ -112,26 +134,28 @@ const logoutUser = AsyncHandler(async(req, res) =>{
 
     return res
     .status(200)
-    .clearCookie("accessToken", accessToken, options)
-    .clearCookie("refreshToken", refreshToken, options)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
     .json({
         message:"user logged out successfully!"
     })
 })
 
 const refreshAccesToken = AsyncHandler(async(req, res) =>{
-    const incomingToken = req.cookie?.refreshToken;
+    const incomingToken = req.cookies?.refreshToken;
 
     if (!incomingToken) {
         throw new ApiError(404, "refreshToken required!")
     }
 
-    const verifyJwt = await jwt.verify(incomingToken, process.env.REFRESH_TOKEN_SECRET);
+    const verifyJwt = jwt.verify(incomingToken, process.env.REFRESH_TOKEN_SECRET);
+
     if (!verifyJwt) {
         throw new ApiError(404, "incomming token in not verified!")
     }
 
-    let user = await User.findById(incomingToken._id);
+    let user = await User.findById(req.user._id);
+
     if (!user) {
         throw new ApiError(404, "user not found!")
     }
@@ -140,8 +164,8 @@ const refreshAccesToken = AsyncHandler(async(req, res) =>{
         throw new ApiError(404, "incommingToken is not valid!")
     }
 
-    const { accessToken } = await user.generateAccessToken();
-    const { refreshToken } = await user.generateRefreshToken();
+    const accessToken = await user.generateAccessToken();
+    const refreshToken = await user.generateRefreshToken();
 
     user.refreshToken = refreshToken;
     await user.save();
@@ -160,11 +184,12 @@ const refreshAccesToken = AsyncHandler(async(req, res) =>{
     })
 })
 
-const updateUserAvatar = AsyncHandler(async() => {
+const updateUserAvatar = AsyncHandler(async(req, res) => {
 
-    let localPathUrl = req.files?.avatar?.[0]?.path;
+    let localPathUrl = req.file?.path;
 
     let newFile = await uploadFileOnCloudinary(localPathUrl)
+    console.log(newFile)
 
     if (!newFile) {
         throw new ApiError(500, "Server Error! file couldn't uploaded!")
@@ -173,23 +198,25 @@ const updateUserAvatar = AsyncHandler(async() => {
     const updatedUser = await User.findByIdAndUpdate(req.user?._id, {avatar: newFile.url});
     
     if (!updatedUser) {
-        throw new ApiError(500, "Server Error! user not created!")
+        throw new ApiError(500, "Server Error! file couldn't not updated!")
     }
 
     return res
     .status(200)
     .json({
-        message:"user updated successfully!"
+        message:"avatar updated successfully!"
     })
 })
 
 const updateUser = AsyncHandler(async(req, res) => {
     const {name, adress, city, contact} = req.body;
 
-    if (name, adress.trim() || city.trim() || contact.trim() === "") {
-       throw new ApiError(404, "all fields not be empty")        
-    }
+    let fields = [name, adress, city, contact]
 
+    if (fields.some((field) => field?.trim() === "")) {
+       throw new ApiError(404, "all fields are required")        
+    }
+ 
     let updateInfo = {
         name,
         adress,
@@ -197,9 +224,8 @@ const updateUser = AsyncHandler(async(req, res) => {
         contact,
     }
 
-    let user = await User.findByIdAndUpdate(req.user?._id , updateInfo);
-    let updatedUser= user.select("-password -refreshToken")
-  
+    let updatedUser = await User.findByIdAndUpdate(req.user?._id , updateInfo);
+
     if (!updatedUser) {
         throw new ApiError(500, "Server Error! user not created!")
     }
@@ -212,14 +238,17 @@ const updateUser = AsyncHandler(async(req, res) => {
     })
 })
 
-const updatePassword = AsyncHandler(async() => {
+const updatePassword = AsyncHandler(async(req, res) => {
     const {oldPassword, newPassword, confirmNewPassword} = req.body;
 
-    if (oldPassword.trim() || newPassword.trim() || confirmNewPassword.trim() === "") {
+    let fields = [oldPassword, newPassword, confirmNewPassword]
+
+    if (fields.some((field) => field?.trim() === "")) {
        throw new ApiError(404, "All fields are required")        
     }
 
     let user = await User.findById(req.user?._id)
+
     if (!user) {
         throw new ApiError(500, "user not found!")
     }
@@ -227,18 +256,15 @@ const updatePassword = AsyncHandler(async() => {
     let isPasswordValid = await user.isPasswordCorrect(oldPassword)
 
     if (!isPasswordValid) {
-        throw new ApiError(500, "you entered incorrect password!")
+        throw new ApiError(500, "you entered incorrect Password!")
     }
 
     if (newPassword !== confirmNewPassword) {
-        throw new ApiError(500, "enter confirm new password!")
+        throw new ApiError(500, "enter correct confirm newPassword!")
     }
 
-    const updatedUser = await User.findByIdAndUpdate(req.user?._id, {password: newPassword});
-    
-    if (!updatedUser) {
-        throw new ApiError(500, "Server Error! user not created!")
-    }
+    user.password = newPassword;
+    user.save({validateBeforeSave : false})
 
     return res
     .status(200)
@@ -250,6 +276,7 @@ const updatePassword = AsyncHandler(async() => {
 export {
     createUser,
     loginUser,
+    getCurrentUser,
     logoutUser,
     updateUser,
     updateUserAvatar,

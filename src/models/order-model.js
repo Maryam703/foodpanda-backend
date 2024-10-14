@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 const orderSchema = new Schema({
-    title:{
+    productName:{
         type: String,
         required: true
     },
@@ -17,6 +17,10 @@ const orderSchema = new Schema({
         type: Number,
         required: true
     },
+    orderedBy:{
+        type: String,
+        required : true
+    },
     adress:{
         type: String,
         required: true
@@ -27,15 +31,8 @@ const orderSchema = new Schema({
     },
     status:{
         type: String,
+        enum : ["pending", "Ready to deliver", "on the way", "delivered"],
         required: true
-    },
-    orderedTo:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-    },
-    orderedBy:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
     }
 }, {timestamps: true})
 

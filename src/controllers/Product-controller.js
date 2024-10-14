@@ -1,36 +1,45 @@
 import AsyncHandler from "../utils/AsyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
 import { Product } from "../models/product-model.js";
+import uploadFileOnCloudinary from "../utils/Cloudinary.js";
+import { User } from "../models/user-model.js";
 
-const createProduct = AsyncHandler(async() => {
-    const {title, category, description, price, estimatedTime, estimatedDC} = req.body;
+const createProduct = AsyncHandler(async(req, res) => {
+    const {name, category, description, price} = req.body;
 
-    if (title.trim() || price.trim() || category.trim() || description.trim() || estimatedTime.trim() || estimatedDC.trim() === "") {
-        throw ApiError(400, "all field must be fullfild")
+    let fields = [name, category, description, price]
+
+    if (fields && fields.some((field) => field?.trim() === "")) {
+        throw new ApiError(400, "all field must be fullfild")
     }
 
-    let localFilePath = req.files?.image?.[0]?.path
+    let localFilePath = req.file?.path
 
     let uploadedFile = await uploadFileOnCloudinary(localFilePath)
 
     if (!uploadedFile) {
-        throw ApiError(509, "server error. file couldn't be uploaded on cloudinary!")
+        throw new ApiError(509, "server error. file couldn't be uploaded on cloudinary!")
+    }
+   
+   let user = await User.findById(req.user?._id);
+
+    if(!user){
+        throw new ApiError(500, "user not found!")
     }
 
     let productDetail = {
-        title,
-        image : uploadedFile.url,
+        name,
         price,
         category,
         description,
-        estimatedTime,
-        estimatedDC
+        owner : user._id,
+        image : uploadedFile.url,
     }
 
     const createdProduct = await Product.create(productDetail);
 
     if (!createdProduct) {
-        throw ApiError(505, "server error. product couldn't be created!")
+        throw new ApiError(505, "server error. product couldn't be created!")
     }
 
     return res
@@ -41,17 +50,17 @@ const createProduct = AsyncHandler(async() => {
     })
 })
 
-const getProductByProductId = AsyncHandler(async() => {
+const getProductByProductId = AsyncHandler(async(req, res) => {
     const { productId } = req.params;
 
     if (!productId) {
-        throw ApiError(404, "product id not found!")
+        throw new ApiError(404, "product id not found!")
     }
 
     const product = await Product.findById(productId)
 
     if (!product) {
-        throw ApiError(505, "Product not found")
+        throw new ApiError(505, "Product not found")
     }
 
     return res
@@ -62,11 +71,11 @@ const getProductByProductId = AsyncHandler(async() => {
     })
 })
 
-const getAllProducts = AsyncHandler(async() => {
+const getAllProducts = AsyncHandler(async(req, res) => {
     const Products = await Product.find()
 
     if (!Products) {
-        throw ApiError(505, "products not found")
+        throw new ApiError(505, "products not found")
     }
 
     return res
@@ -77,25 +86,26 @@ const getAllProducts = AsyncHandler(async() => {
     })
 })
 
-const updateProduct = AsyncHandler(async() => {
+const updateProduct = AsyncHandler(async(req, res) => {
     const { productId } = req.params;
-    const { title, description, price } = req.body; 
+    const { name, description, price } = req.body; 
 
+    let fields = [name, description, price]
 
-    if (title.trim() || price.trim() || description.trim()  === "") {
-        throw ApiError(400, "all field must be fullfild")
+    if (fields.some((field) => field?.trim === "")) {
+        throw new ApiError(400, "all field must be fullfild")
     }
 
     let updatedData = {
-        title,
-        descriptionn,
+        name,
+        description,
         price
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(productId, updatedData)
 
     if (!updatedProduct) {
-        throw ApiError(505, "server error. product couldn't be updated!")
+        throw new ApiError(505, "server error. product couldn't be updated!")
     }
 
     return res
@@ -106,13 +116,13 @@ const updateProduct = AsyncHandler(async() => {
     })
 })
 
-const deleteProduct = AsyncHandler(async() => {
+const deleteProduct = AsyncHandler(async(req, res) => {
     const { productId } = req.params;
 
     let deletedProduct = await Product.findByIdAndDelete(productId)
 
     if (!deletedProduct) {
-        throw ApiError(504, "server error. product couldn't delete!")
+        throw new ApiError(504, "server error. product couldn't delete!")
     }
     return res
     .status(200)

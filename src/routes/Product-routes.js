@@ -7,13 +7,14 @@ import {
     getProductByProductId,
     updateProduct
 } from "../controllers/Product-controller.js";
+import { upload } from "../middleware/multer-middleware.js";
 
 const router = Router();
 
-router.route("/create-new-product").post(isUserAuthenticated, createProduct);
-router.route("/get-product").get(isUserAuthenticated, getProductByProductId);
-router.route("/get-all-product").get(isUserAuthenticated, getAllProducts);
-router.route("/update-product-details").patch(isUserAuthenticated, updateProduct);
-router.route("/delete-product").delete(isUserAuthenticated, deleteProduct)
+router.route("/create-new-product").post(isUserAuthenticated, upload.single("image") , createProduct);
+router.route("/get-product/:productId").get(isUserAuthenticated, getProductByProductId);
+router.route("/get-all-products").get(isUserAuthenticated, getAllProducts);
+router.route("/update-product/:productId").patch(isUserAuthenticated, updateProduct);
+router.route("/delete-product/:productId").delete(isUserAuthenticated, deleteProduct)
 
 export default router;

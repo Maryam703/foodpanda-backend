@@ -3,107 +3,108 @@ import { ApiError } from "../utils/ApiError.js"
 import { Order } from "../models/order-model.js";
 import uploadFileOnCloudinary from "../utils/Cloudinary.js";
 
-const createOrder = AsyncHandler(async() => {
-    const {title, quantity, price, adress, contact, status, orderedBy, estimatedTime, estimatedDC} = req.body;
+const createOrder = AsyncHandler(async (req, res) => {
+    const { productName, quantity, price, orderedBy, adress, contact, status } = req.body;
 
-    if (title.trim() || price.trim() || quantity.trim() || adress.trim() || contact.trim() || status.trim() || orderedBy.trim() || estimatedTime.trim() || estimatedDC.trim() === "") {
-        throw ApiError(400, "all field must be fullfild")
+    let fields = [productName, quantity, price, orderedBy, adress, contact, status]
+
+    if (fields.some((field) => field?.trim() === "")) {
+        throw new ApiError(400, "all fields are required!")
     }
-
-    let localPathUrl = req.files?.image?.[0]?.path;
+    
+    let localPathUrl = req.file?.path;
 
     let uploadedFile = await uploadFileOnCloudinary(localPathUrl)
 
     if (!uploadedFile) {
-        throw ApiError(504, "server error! file couldn't be uploaded on cloudinary!")
+        throw new ApiError(504, "server error! file couldn't be uploaded on cloudinary!")
     }
 
     let order = {
-        title,
+        productName,
         image : uploadedFile.url,
-        price,
         quantity,
-        adress,
-        status,
+        price,
         orderedBy,
-        estimatedTime,
-        estimatedDC
+        adress,
+        contact,
+        status,
     }
 
-    const createdOrder = Order.create(order)
+    const createdOrder = await Order.create(order)
 
     return res
-    .status(200)
-    .json({
-        createdOrder,
-        message : "order created successfully!"
-    })
+        .status(200)
+        .json({
+            createdOrder,
+            message: "order created successfully!"
+        })
 })
 
-const getOrderByOrderId = AsyncHandler(async() => {
+const getOrderByOrderId = AsyncHandler(async (req, res) => {
     const { orderId } = req.params;
 
     if (!orderId) {
-        throw ApiError(404, "orderId not found!")
+        throw new ApiError(404, "orderId not found!")
     }
 
     const searchedOrder = await Order.findById(orderId)
 
     if (!searchedOrder) {
-        throw ApiError(404, "searchedOrder not found!")
+        throw new ApiError(404, "searchedOrder not found!")
     }
 
     return res
-    .status(200)
-    .json({
-        searchedOrder,
-        message : "searchedOrder found successfully!"
-    })
+        .status(200)
+        .json({
+            searchedOrder,
+            message: "searchedOrder found successfully!"
+        })
 })
 
-const getAllOrders = AsyncHandler(async() => {
+const getAllOrders = AsyncHandler(async (req, res) => {
     const allOrders = await Order.find()
 
-    if (allOrders) {
-        throw ApiError(404, "orders not found!")
+    if (!allOrders) {
+        throw new ApiError(404, "orders not found!")
     }
 
     return res
-    .status(200)
-    .json({
-        allOrders,
-        message : "All orders fetched successfully!"
-    })
+        .status(200)
+        .json({
+            allOrders,
+            message: "All orders fetched successfully!"
+        })
 })
 
-const updateOrderStatus = AsyncHandler(async() => {
+const updateOrderStatus = AsyncHandler(async (req, res) => {
     const { orderId } = req.params;
-    const { status } = req.body; 
+    const { status } = req.body;
 
-    const updatedOrderStatus = await Restaurant.findByIdAndUpdate(orderId, {status : status})
+    const updatedOrderStatus = await Order.findByIdAndUpdate(orderId, { status: status })
 
     if (!updatedOrderStatus) {
         throw ApiError(500, "Server error, Order status couldn't updated!")
     }
 
     return res
-    .status(200)
-    .json({
-        updatedOrderStatus,
-        message : "order status updated successfully!"
-    })
+        .status(200)
+        .json({
+            updatedOrderStatus,
+            message: "order status updated successfully!"
+        })
 })
 
-const deleteOrder = AsyncHandler(async() => {
+const deleteOrder = AsyncHandler(async (req, res) => {
     const { orderId } = req.params;
 
     await Order.findByIdAndDelete(orderId)
 
     return res
-    .status(200)
-    .json({
-        message : "order deleted successfully!"
-    })
+        .status(200)
+        .json({
+            message: "order deleted successfully!"
+        })
 })
 
 export {
