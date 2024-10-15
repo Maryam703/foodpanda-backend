@@ -2,68 +2,67 @@ import AsyncHandler from "../utils/AsyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user-model.js";
 import uploadFileOnCloudinary from "../utils/Cloudinary.js"
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
+import { sendMailResetPassword } from "../utils/nodeMailer.js";
 
-const createUser = AsyncHandler(async(req, res) => {
-    const {name, email, password, adress, city, contact, role} = req.body;
+const createUser = AsyncHandler(async (req, res) => {
+    const { name, email, password, adress, city, contact, role } = req.body;
 
     let emptyField = [name, email, password, adress, city, contact, role].some((field) => field?.trim() === "")
 
     if (emptyField) {
-       throw new ApiError(404, "all fields are required")        
+        throw new ApiError(404, "all fields are required")
     }
 
     if (!email.includes("@")) {
         throw new ApiError(404, "email must include special character @!")
     }
 
-    const existingUser = await User.findOne({email})
+    const existingUser = await User.findOne({ email })
 
     if (existingUser) {
         throw new ApiError(402, "email already exist!")
     }
 
     let localPathUrl = req.file?.path;
+    console.log(localPathUrl)
 
     let file = await uploadFileOnCloudinary(localPathUrl)
-
-    if (!file) {
-        throw new ApiError(509, "server error. file couldn't uploaded on cloudinary!")
-    }
 
     let userData = {
         name,
         email,
         password,
-        avatar: file.url,
+        avatar: file?.url || null,
         adress,
         city,
         contact,
         role
     }
 
+
     const createdUser = await User.create(userData);
-    
+
     if (!createdUser) {
         throw new ApiError(500, "Server Error! user not created!")
     }
 
     return res
-    .status(200)
-    .json({
-        createdUser,
-        message:"user created successfully!"
-    })
+        .status(200)
+        .json({
+            createdUser,
+            message: "user created successfully!"
+        })
 })
 
-const loginUser = AsyncHandler(async(req, res) => {
-    const {email, password} = req.body;
+const loginUser = AsyncHandler(async (req, res) => {
+    const { email, password } = req.body;
 
-    if (email?.trim() === "" ) {
-        throw new ApiError(404, "All fields are required")        
+    if (email?.trim() === "") {
+        throw new ApiError(404, "All fields are required")
     }
 
-    const user = await User.findOne({email});
+    const user = await User.findOne({ email });
 
     if (!user) {
         throw new ApiError(500, "enter valid email!")
@@ -80,25 +79,25 @@ const loginUser = AsyncHandler(async(req, res) => {
 
     user.refreshToken = refreshToken;
     await user.save({
-        validateBeforeSave : false
+        validateBeforeSave: false
     });
 
     let options = {
-        httpOnly : true,
-        secure : true
+        httpOnly: true,
+        secure: true
     }
 
     return res
-    .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json({
-        user,
-        message:"user fetched successfully!"
-    })
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json({
+            user,
+            message: "user fetched successfully!"
+        })
 })
 
-const getCurrentUser = AsyncHandler(async(req, res) => {
+const getCurrentUser = AsyncHandler(async (req, res) => {
     let user = await User.findById(req.user?._id)
 
     console.log(user)
@@ -106,20 +105,20 @@ const getCurrentUser = AsyncHandler(async(req, res) => {
     if (!user) {
         throw new ApiError(500, "user not found!")
     }
-    
+
     return res
-    .status(200)
-    .json({
-        user,
-        message : "user fetched successfully!"
-    })
+        .status(200)
+        .json({
+            user,
+            message: "user fetched successfully!"
+        })
 })
 
-const logoutUser = AsyncHandler(async(req, res) =>{
+const logoutUser = AsyncHandler(async (req, res) => {
 
-    let resetUserToken = await User.findByIdAndUpdate(req.user?._id , {
-        $unset : {
-            refreshToken : 1
+    let resetUserToken = await User.findByIdAndUpdate(req.user?._id, {
+        $unset: {
+            refreshToken: 1
         }
     })
 
@@ -128,20 +127,20 @@ const logoutUser = AsyncHandler(async(req, res) =>{
     }
 
     let options = {
-        httpOnly : true,
-        secure : true
+        httpOnly: true,
+        secure: true
     }
 
     return res
-    .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
-    .json({
-        message:"user logged out successfully!"
-    })
+        .status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json({
+            message: "user logged out successfully!"
+        })
 })
 
-const refreshAccesToken = AsyncHandler(async(req, res) =>{
+const refreshAccesToken = AsyncHandler(async (req, res) => {
     const incomingToken = req.cookies?.refreshToken;
 
     if (!incomingToken) {
@@ -176,15 +175,15 @@ const refreshAccesToken = AsyncHandler(async(req, res) =>{
     }
 
     return res
-    .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json({
-        message: "token refreshed successfully!"
-    })
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json({
+            message: "token refreshed successfully!"
+        })
 })
 
-const updateUserAvatar = AsyncHandler(async(req, res) => {
+const updateUserAvatar = AsyncHandler(async (req, res) => {
 
     let localPathUrl = req.file?.path;
 
@@ -195,28 +194,28 @@ const updateUserAvatar = AsyncHandler(async(req, res) => {
         throw new ApiError(500, "Server Error! file couldn't uploaded!")
     }
 
-    const updatedUser = await User.findByIdAndUpdate(req.user?._id, {avatar: newFile.url});
-    
+    const updatedUser = await User.findByIdAndUpdate(req.user?._id, { avatar: newFile.url });
+
     if (!updatedUser) {
         throw new ApiError(500, "Server Error! file couldn't not updated!")
     }
 
     return res
-    .status(200)
-    .json({
-        message:"avatar updated successfully!"
-    })
+        .status(200)
+        .json({
+            message: "avatar updated successfully!"
+        })
 })
 
-const updateUser = AsyncHandler(async(req, res) => {
-    const {name, adress, city, contact} = req.body;
+const updateUser = AsyncHandler(async (req, res) => {
+    const { name, adress, city, contact } = req.body;
 
     let fields = [name, adress, city, contact]
 
     if (fields.some((field) => field?.trim() === "")) {
-       throw new ApiError(404, "all fields are required")        
+        throw new ApiError(404, "all fields are required")
     }
- 
+
     let updateInfo = {
         name,
         adress,
@@ -224,27 +223,27 @@ const updateUser = AsyncHandler(async(req, res) => {
         contact,
     }
 
-    let updatedUser = await User.findByIdAndUpdate(req.user?._id , updateInfo);
+    let updatedUser = await User.findByIdAndUpdate(req.user?._id, updateInfo);
 
     if (!updatedUser) {
         throw new ApiError(500, "Server Error! user not created!")
     }
 
     return res
-    .status(200)
-    .json({
-        updatedUser,
-        message:"user updated successfully!"
-    })
+        .status(200)
+        .json({
+            updatedUser,
+            message: "user updated successfully!"
+        })
 })
 
-const updatePassword = AsyncHandler(async(req, res) => {
-    const {oldPassword, newPassword, confirmNewPassword} = req.body;
+const updatePassword = AsyncHandler(async (req, res) => {
+    const { oldPassword, newPassword, confirmNewPassword } = req.body;
 
     let fields = [oldPassword, newPassword, confirmNewPassword]
 
     if (fields.some((field) => field?.trim() === "")) {
-       throw new ApiError(404, "All fields are required")        
+        throw new ApiError(404, "All fields are required")
     }
 
     let user = await User.findById(req.user?._id)
@@ -264,13 +263,35 @@ const updatePassword = AsyncHandler(async(req, res) => {
     }
 
     user.password = newPassword;
-    user.save({validateBeforeSave : false})
+    user.save({ validateBeforeSave: false })
 
     return res
-    .status(200)
-    .json({
-        message:"password updated successfully!"
-    })
+        .status(200)
+        .json({
+            message: "password updated successfully!"
+        })
+})
+
+const forgetPassword = AsyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    let user = await User.findOne({ email })
+
+    if (!user) {
+        throw new ApiError(400, "user not found on given email!")
+    }
+
+    let emailSent = await sendMailResetPassword(email)
+
+    if (!emailSent) {
+        throw new ApiError(500, "server error. email couldn't sent!")
+    }
+
+    return res
+        .status(200)
+        .json({
+            message: `email sent on ${user?.email}`
+        })
 })
 
 export {
@@ -281,5 +302,6 @@ export {
     updateUser,
     updateUserAvatar,
     updatePassword,
-    refreshAccesToken
+    refreshAccesToken,
+    forgetPassword
 }

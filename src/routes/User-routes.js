@@ -7,7 +7,8 @@ import {
     updateUser,
     updateUserAvatar,
     updatePassword,
-    refreshAccesToken
+    refreshAccesToken,
+    forgetPassword
 } from "../controllers/User-controller.js";
 import { upload } from "../middleware/multer-middleware.js"
 import isUserAuthenticated from "../middleware/auth-middelware.js"
@@ -22,5 +23,6 @@ router.route("/update-user-info").patch(isUserAuthenticated, updateUser);
 router.route("/update-user-avatar").patch(isUserAuthenticated, upload.single("avatar"), updateUserAvatar);
 router.route("/refresh-access-token").get(isUserAuthenticated, refreshAccesToken);
 router.route("/update-user-password").patch(isUserAuthenticated, updatePassword);
+router.route("/forget-password").get(forgetPassword)
 
 export default router;
