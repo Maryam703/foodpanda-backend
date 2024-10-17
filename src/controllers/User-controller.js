@@ -25,7 +25,6 @@ const createUser = AsyncHandler(async (req, res) => {
     }
 
     let localPathUrl = req.file?.path;
-    console.log(localPathUrl)
 
     let file = await uploadFileOnCloudinary(localPathUrl)
 
@@ -82,15 +81,23 @@ const loginUser = AsyncHandler(async (req, res) => {
         validateBeforeSave: false
     });
 
-    let options = {
-        httpOnly: true,
-        secure: true
-    }
+    // let options = {
+    //     httpOnly: true,
+    //     secure: true,
+    //     expires: new Date(Date.now() + 900000)
+    // }
+    // let options = {
+    //     httpOnly: true,
+    //     secure: process.env.NODE_ENV === "production", // only secure in production
+    //     expires: new Date(Date.now() + 900000),
+    //     path: "/"
+    // }
+
 
     return res
         .status(200)
-        .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", refreshToken, options)
+        .cookie("accessToken", accessToken)
+        .cookie("refreshToken", refreshToken)
         .json({
             user,
             message: "user fetched successfully!"
@@ -111,6 +118,21 @@ const getCurrentUser = AsyncHandler(async (req, res) => {
         .json({
             user,
             message: "user fetched successfully!"
+        })
+})
+
+const getAllUsers = AsyncHandler(async (req, res) => {
+    let user = await User.find()
+
+    if (!user) {
+        throw new ApiError(500, "user not found!")
+    }
+
+    return res
+        .status(200)
+        .json({
+            user,
+            message: "all users fetched successfully!"
         })
 })
 
@@ -216,14 +238,15 @@ const updateUser = AsyncHandler(async (req, res) => {
         throw new ApiError(404, "all fields are required")
     }
 
-    let updateInfo = {
-        name,
-        adress,
-        city,
-        contact,
-    }
-
-    let updatedUser = await User.findByIdAndUpdate(req.user?._id, updateInfo);
+    let updatedUser = await User.findByIdAndUpdate(req.user?._id, {
+        name: name,
+        adress: adress,
+        city: city,
+        contact: contact
+    },
+        {
+            new: true
+        });
 
     if (!updatedUser) {
         throw new ApiError(500, "Server Error! user not created!")
@@ -273,19 +296,19 @@ const updatePassword = AsyncHandler(async (req, res) => {
 })
 
 const forgetPassword = AsyncHandler(async (req, res) => {
-    const { email } = req.body;
+    // const { email } = req.body;
 
-    let user = await User.findOne({ email })
+    // let user = await User.findOne({ email })
 
-    if (!user) {
-        throw new ApiError(400, "user not found on given email!")
-    }
+    // if (!user) {
+    //     throw new ApiError(400, "user not found on given email!")
+    // }
 
-    let emailSent = await sendMailResetPassword(email)
+    // let emailSent = await sendMailResetPassword(email)
 
-    if (!emailSent) {
-        throw new ApiError(500, "server error. email couldn't sent!")
-    }
+    // if (!emailSent) {
+    //     throw new ApiError(500, "server error. email couldn't sent!")
+    // }
 
     return res
         .status(200)
@@ -298,6 +321,7 @@ export {
     createUser,
     loginUser,
     getCurrentUser,
+    getAllUsers,
     logoutUser,
     updateUser,
     updateUserAvatar,

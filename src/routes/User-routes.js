@@ -3,6 +3,7 @@ import {
     createUser,
     loginUser,
     getCurrentUser,
+    getAllUsers,
     logoutUser,
     updateUser,
     updateUserAvatar,
@@ -17,7 +18,8 @@ const router = Router()
 
 router.route("/sign-up").post(upload.single("avatar"), createUser);
 router.route("/login-user").post(loginUser);
-router.route("/get-user").get(isUserAuthenticated, getCurrentUser)
+router.route("/get-user").get(isUserAuthenticated ,getCurrentUser);
+router.route("/get-all-users").get(isUserAuthenticated, getAllUsers)
 router.route("/logout").post(isUserAuthenticated, logoutUser);
 router.route("/update-user-info").patch(isUserAuthenticated, updateUser);
 router.route("/update-user-avatar").patch(isUserAuthenticated, upload.single("avatar"), updateUserAvatar);

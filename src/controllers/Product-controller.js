@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js"
 import { Product } from "../models/product-model.js";
 import uploadFileOnCloudinary from "../utils/Cloudinary.js";
 import { User } from "../models/user-model.js";
+import mongoose from "mongoose";
 
 const createProduct = AsyncHandler(async(req, res) => {
     const {name, category, description, price} = req.body;
@@ -32,7 +33,7 @@ const createProduct = AsyncHandler(async(req, res) => {
         price,
         category,
         description,
-        owner : user._id,
+        shopId : req.user?.shopId,
         image : uploadedFile.url,
     }
 
@@ -72,10 +73,16 @@ const getProductByProductId = AsyncHandler(async(req, res) => {
 })
 
 const getAllProducts = AsyncHandler(async(req, res) => {
-    const Products = await Product.find()
+    const { shopId } = req.params;
+    const Products = await Product.aggregate([{
+
+        $match : {
+            shopId : new mongoose.Types.ObjectId(shopId)
+        }
+    }])
 
     if (!Products) {
-        throw new ApiError(505, "products not found")
+        throw new ApiError(404, "products not found")
     }
 
     return res
@@ -127,6 +134,7 @@ const deleteProduct = AsyncHandler(async(req, res) => {
     return res
     .status(200)
     .json({
+        deletedProduct,
         message : "Product deleted successfully!"
     })
 })

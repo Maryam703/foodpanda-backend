@@ -14,10 +14,12 @@ app.use(cors({
 }))
 
 import userRoutes from "./routes/User-routes.js"
+import shopRoutes from "./routes/Shop-routes.js"
 import orderRoutes from "./routes/Order-routes.js"
 import productRoutes from "./routes/Product-routes.js"
 
 app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/shop", shopRoutes);
 app.use("/api/v1/order", orderRoutes);
 app.use("/api/v1/product", productRoutes)
 
