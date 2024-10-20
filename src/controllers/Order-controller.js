@@ -1,33 +1,18 @@
 import AsyncHandler from "../utils/AsyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
 import { Order } from "../models/order-model.js";
-import uploadFileOnCloudinary from "../utils/Cloudinary.js";
 
 const createOrder = AsyncHandler(async (req, res) => {
-    const { productName, quantity, price, orderedBy, adress, contact, status } = req.body;
-
-    let fields = [productName, quantity, price, orderedBy, adress, contact, status]
-
-    if (fields.some((field) => field?.trim() === "")) {
-        throw new ApiError(400, "all fields are required!")
-    }
-    
-    let localPathUrl = req.file?.path;
-
-    let uploadedFile = await uploadFileOnCloudinary(localPathUrl)
-
-    if (!uploadedFile) {
-        throw new ApiError(504, "server error! file couldn't be uploaded on cloudinary!")
-    }
+    const { Items, shopId, shopName, orderBy, adress, contact, price, status } = req.body;
 
     let order = {
-        productName,
-        image : uploadedFile.url,
-        quantity,
-        price,
-        orderedBy,
+        Items,
+        shopId,
+        shopName,
+        orderBy,
         adress,
         contact,
+        price,
         status,
     }
 
@@ -48,38 +33,66 @@ const getOrderByOrderId = AsyncHandler(async (req, res) => {
         throw new ApiError(404, "orderId not found!")
     }
 
-    const searchedOrder = await Order.findById(orderId)
+    const order = await Order.findById(orderId)
 
-    if (!searchedOrder) {
+    if (!order) {
         throw new ApiError(404, "searchedOrder not found!")
     }
 
     return res
         .status(200)
         .json({
-            searchedOrder,
+            order,
             message: "searchedOrder found successfully!"
         })
 })
 
 const getAllOrders = AsyncHandler(async (req, res) => {
-    const allOrders = await Order.find()
+    const orders = await Order.find()
 
-    if (!allOrders) {
+    if (!orders) {
         throw new ApiError(404, "orders not found!")
     }
 
     return res
         .status(200)
         .json({
-            allOrders,
+            orders,
             message: "All orders fetched successfully!"
+        })
+})
+
+const getShopOrders = AsyncHandler(async (req, res) => {
+    const { shopId } = req.params;
+
+    if (!shopId) {
+        throw new ApiError(404, "shopId not found!")
+    }
+
+    const orders = await Order.aggregate([
+        {
+            $match : {
+                shopId : shopId
+            }
+        }
+    ])
+
+    if (!orders) {
+        throw new ApiError(404, "orders not found!")
+    }
+
+    return res
+        .status(200)
+        .json({
+            orders,
+            message: "All shop orders fetched successfully!"
         })
 })
 
 const updateOrderStatus = AsyncHandler(async (req, res) => {
     const { orderId } = req.params;
     const { status } = req.body;
+    console.log(orderId, status)
 
     const updatedOrderStatus = await Order.findByIdAndUpdate(orderId, { status: status })
 
@@ -111,6 +124,7 @@ export {
     createOrder,
     getOrderByOrderId,
     getAllOrders,
+    getShopOrders,
     updateOrderStatus,
     deleteOrder
 }

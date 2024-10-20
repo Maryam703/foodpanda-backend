@@ -1,23 +1,51 @@
 import mongoose, { Schema } from "mongoose";
 
-const orderSchema = new Schema({
-    productName:{
-        type: String,
-        required: true
+const itemSchema = new Schema({
+    _id:{
+        type: String
+    },
+    name:{
+        type: String
+    },
+    category:{
+        type: String
     },
     image:{
-        type: String,
-        required: true
-    },
-    quantity:{
-        type: Number,
-        required: true
+        type: String
     },
     price:{
-        type: Number,
-        required: true
+        type: Number
     },
-    orderedBy:{
+    quantity:{
+        type: String
+    },
+    description:{
+        type: String
+    },
+    shopId:{
+        type: String
+    },
+    createdAt:{
+        type: String
+    },
+    updatedAt:{
+        type: String
+    }
+})
+
+const orderSchema = new Schema({
+    Items:[
+        { type: itemSchema } 
+    ],
+    shopId:{
+        type: String,
+        required : true
+    },
+    shopName:{
+        type: String,
+        required : true
+    },
+    orderBy:{
         type: String,
         required : true
     },
@@ -29,9 +57,12 @@ const orderSchema = new Schema({
         type: Number,
         required: true
     },
+    price:{
+        type: Number,
+        required: true
+    },
     status:{
         type: String,
-        enum : ["pending", "Ready to deliver", "on the way", "delivered"],
         required: true
     }
 }, {timestamps: true})

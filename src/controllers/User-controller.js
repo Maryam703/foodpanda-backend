@@ -40,22 +40,41 @@ const createUser = AsyncHandler(async (req, res) => {
     }
 
 
-    const createdUser = await User.create(userData);
+    const user = await User.create(userData);
 
-    if (!createdUser) {
+    if (!user) {
         throw new ApiError(500, "Server Error! user not created!")
+    }
+
+    const accessToken = await user.generateAccessToken();
+    const refreshToken = await user.generateRefreshToken();
+
+    user.refreshToken = refreshToken;
+    user.accessToken = accessToken;
+    await user.save({
+        validateBeforeSave: false
+    });
+
+    const options = {
+        httpOnly: true,
+        sameSite: 'strict', 
+        expires: new Date(Date.now() + 900000)
     }
 
     return res
         .status(200)
+        .header('Access-Control-Allow-Credentials', true)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
         .json({
-            createdUser,
+            user,
             message: "user created successfully!"
         })
 })
 
 const loginUser = AsyncHandler(async (req, res) => {
     const { email, password } = req.body;
+    console.log(email, password)
 
     if (email?.trim() === "") {
         throw new ApiError(404, "All fields are required")
@@ -77,27 +96,22 @@ const loginUser = AsyncHandler(async (req, res) => {
     const refreshToken = await user.generateRefreshToken();
 
     user.refreshToken = refreshToken;
+    user.accessToken = accessToken;
     await user.save({
         validateBeforeSave: false
     });
 
-    // let options = {
-    //     httpOnly: true,
-    //     secure: true,
-    //     expires: new Date(Date.now() + 900000)
-    // }
-    // let options = {
-    //     httpOnly: true,
-    //     secure: process.env.NODE_ENV === "production", // only secure in production
-    //     expires: new Date(Date.now() + 900000),
-    //     path: "/"
-    // }
-
+    const options = {
+        httpOnly: true,
+        sameSite: 'strict', 
+        expires: new Date(Date.now() + 900000)
+    }
 
     return res
         .status(200)
-        .cookie("accessToken", accessToken)
-        .cookie("refreshToken", refreshToken)
+        .header('Access-Control-Allow-Credentials', true)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
         .json({
             user,
             message: "user fetched successfully!"
@@ -140,7 +154,8 @@ const logoutUser = AsyncHandler(async (req, res) => {
 
     let resetUserToken = await User.findByIdAndUpdate(req.user?._id, {
         $unset: {
-            refreshToken: 1
+            refreshToken: 1,
+            accessToken : 1
         }
     })
 

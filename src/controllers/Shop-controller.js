@@ -63,6 +63,22 @@ const createShop = AsyncHandler(async (req, res) => {
         })
 })
 
+const getShopById = AsyncHandler(async (req, res) => {
+    const { shopId } = req.params;
+    let shop = await Shop.findById(shopId)
+
+    if (!shop) {
+        throw new ApiError(500, "shop not found!")
+    }
+
+    return res
+        .status(200)
+        .json({
+            shop,
+            message: "shop fetched successfully!"
+        })
+})
+
 const getAllShops = AsyncHandler(async (req, res) => {
     let shops = await Shop.find()
 
@@ -149,6 +165,7 @@ const deleteShop = AsyncHandler(async (req, res) => {
 
 export {
     createShop,
+    getShopById,
     getAllShops,
     updateShopAvatar,
     updateShopDetails,

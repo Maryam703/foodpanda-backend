@@ -33,20 +33,20 @@ const createProduct = AsyncHandler(async(req, res) => {
         price,
         category,
         description,
-        shopId : req.user?.shopId,
+        shopId : user?.shopId,
         image : uploadedFile.url,
     }
 
-    const createdProduct = await Product.create(productDetail);
+    const product = await Product.create(productDetail);
 
-    if (!createdProduct) {
+    if (!product) {
         throw new ApiError(505, "server error. product couldn't be created!")
     }
 
     return res
     .status(200)
     .json({
-        createdProduct,
+        product,
         message : "Product is created successfully!"
     })
 })
@@ -74,39 +74,46 @@ const getProductByProductId = AsyncHandler(async(req, res) => {
 
 const getAllProducts = AsyncHandler(async(req, res) => {
     const { shopId } = req.params;
-    const Products = await Product.aggregate([{
-
-        $match : {
-            shopId : new mongoose.Types.ObjectId(shopId)
+    const products = await Product.aggregate([
+        {
+            $match : {
+                shopId : shopId
+            }
         }
-    }])
+    ]);
 
-    if (!Products) {
+    if (!products) {
         throw new ApiError(404, "products not found")
     }
 
     return res
     .status(200)
     .json({
-        Products,
+        products,
         message : "Products fetched successfully!"
     })
 })
 
 const updateProduct = AsyncHandler(async(req, res) => {
+    console.log("working")
     const { productId } = req.params;
-    const { name, description, price } = req.body; 
+    const { name, description, price, category } = req.body; 
 
-    let fields = [name, description, price]
+    let fields = [name, description, price, category]
 
     if (fields.some((field) => field?.trim === "")) {
         throw new ApiError(400, "all field must be fullfild")
     }
 
+    let localPathUrl = req.file?.path;
+    let file = await uploadFileOnCloudinary(localPathUrl);
+
     let updatedData = {
         name,
         description,
-        price
+        price,
+        category,
+        image : file?.url
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(productId, updatedData)
