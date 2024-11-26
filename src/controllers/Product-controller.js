@@ -4,6 +4,7 @@ import { Product } from "../models/product-model.js";
 import uploadFileOnCloudinary from "../utils/Cloudinary.js";
 import { User } from "../models/user-model.js";
 import mongoose from "mongoose";
+import ApiFeature from "../utils/apiFeature.js";
 
 const createProduct = AsyncHandler(async(req, res) => {
     const {name, category, description, price} = req.body;
@@ -59,6 +60,25 @@ const getProductByProductId = AsyncHandler(async(req, res) => {
     }
 
     const product = await Product.findById(productId)
+
+    if (!product) {
+        throw new ApiError(505, "Product not found")
+    }
+
+    return res
+    .status(200)
+    .json({
+        product,
+        message : "product fetched successfully!"
+    })
+})
+
+const searchProduct = AsyncHandler(async(req, res) => {
+    const apiFeature = new ApiFeature ( Product.find(), {keyword : req.query.keyword})
+
+    apiFeature.search();
+
+    let product = await apiFeature.query;
 
     if (!product) {
         throw new ApiError(505, "Product not found")
@@ -149,6 +169,7 @@ const deleteProduct = AsyncHandler(async(req, res) => {
 export {
     createProduct,
     getProductByProductId,
+    searchProduct,
     getAllProducts,
     updateProduct,
     deleteProduct

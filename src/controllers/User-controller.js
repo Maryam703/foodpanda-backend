@@ -74,10 +74,9 @@ const createUser = AsyncHandler(async (req, res) => {
 
 const loginUser = AsyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    console.log(email, password)
 
     if (email?.trim() === "") {
-        throw new ApiError(404, "All fields are required")
+        throw new ApiError(404, "Email is required")
     }
 
     const user = await User.findOne({ email });
@@ -120,8 +119,6 @@ const loginUser = AsyncHandler(async (req, res) => {
 
 const getCurrentUser = AsyncHandler(async (req, res) => {
     let user = await User.findById(req.user?._id)
-
-    console.log(user)
 
     if (!user) {
         throw new ApiError(500, "user not found!")

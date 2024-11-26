@@ -2,7 +2,8 @@ import AsyncHandler from "../utils/AsyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user-model.js";
 import { Shop } from "../models/shop-model.js";
-import uploadFileOnCloudinary from "../utils/Cloudinary.js"
+import uploadFileOnCloudinary from "../utils/Cloudinary.js";
+import ApiFeature from "../utils/apiFeature.js"
 
 const createShop = AsyncHandler(async (req, res) => {
     const { name, email, password, adress, city, contact, role } = req.body;
@@ -25,9 +26,9 @@ const createShop = AsyncHandler(async (req, res) => {
         contact
     }
 
-    const createdShop = await Shop.create(shopData);
+    const shop = await Shop.create(shopData);
 
-    if (!createdShop) {
+    if (!shop) {
         throw new ApiError(500, "Server Error! shop does not created!")
     }
 
@@ -42,23 +43,32 @@ const createShop = AsyncHandler(async (req, res) => {
     }
 
     let userData = {
-        shopId: createdShop._id,
+        shopId: shop._id,
         email,
         password,
         role: "shopadmin"
     }
 
-    const createdUser = await User.create(userData);
+    const user = await User.create(userData);
 
-    if (!createdUser) {
+    if (!user) {
         throw new ApiError(500, "Server Error! user does not created!")
     }
+
+    const accessToken = await user.generateAccessToken();
+    const refreshToken = await user.generateRefreshToken();
+
+    user.refreshToken = refreshToken;
+    user.accessToken = accessToken;
+    await user.save({
+        validateBeforeSave: false
+    });
 
     return res
         .status(200)
         .json({
-            createShop,
-            createdUser,
+            shop,
+            user,
             message: "user created successfully!"
         })
 })
@@ -66,6 +76,25 @@ const createShop = AsyncHandler(async (req, res) => {
 const getShopById = AsyncHandler(async (req, res) => {
     const { shopId } = req.params;
     let shop = await Shop.findById(shopId)
+
+    if (!shop) {
+        throw new ApiError(500, "shop not found!")
+    }
+
+    return res
+        .status(200)
+        .json({
+            shop,
+            message: "shop fetched successfully!"
+        })
+})
+
+const searchShop = AsyncHandler(async (req, res) => {
+    const apiFeature = new ApiFeature(Shop.find(), {keyword: req.query.keyword})
+
+    apiFeature.search();
+
+    let shop = await apiFeature.query;
 
     if (!shop) {
         throw new ApiError(500, "shop not found!")
@@ -95,11 +124,9 @@ const getAllShops = AsyncHandler(async (req, res) => {
 })
 
 const updateShopAvatar = AsyncHandler(async (req, res) => {
-
+    console.log(req.file)
     let localPathUrl = req.file?.path;
-
     let newFile = await uploadFileOnCloudinary(localPathUrl)
-    console.log(newFile)
 
     if (!newFile) {
         throw new ApiError(500, "Server Error! file couldn't uploaded!")
@@ -144,7 +171,7 @@ const updateShopDetails = AsyncHandler(async (req, res) => {
         .status(200)
         .json({
             updatedShop,
-            message: "user updated successfully!"
+            message: "shop updated successfully!"
         })
 })
 const deleteShop = AsyncHandler(async (req, res) => {
@@ -169,5 +196,6 @@ export {
     getAllShops,
     updateShopAvatar,
     updateShopDetails,
-    deleteShop
+    deleteShop,
+    searchShop
 }

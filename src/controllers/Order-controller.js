@@ -3,9 +3,9 @@ import { ApiError } from "../utils/ApiError.js"
 import { Order } from "../models/order-model.js";
 
 const createOrder = AsyncHandler(async (req, res) => {
-    const { Items, shopId, shopName, orderBy, adress, contact, price, status } = req.body;
+    const { Items, shopId, shopName, orderBy, adress, contact, price, riderId, status } = req.body;
 
-    let order = {
+    let orderData = {
         Items,
         shopId,
         shopName,
@@ -13,15 +13,21 @@ const createOrder = AsyncHandler(async (req, res) => {
         adress,
         contact,
         price,
+        riderId,
         status,
     }
+    console.log(orderData)
 
-    const createdOrder = await Order.create(order)
+    const order = await Order.create(orderData)
+
+    if (!order) {
+        throw new Error(500, "order couldn't be created!");
+    }
 
     return res
         .status(200)
         .json({
-            createdOrder,
+            order,
             message: "order created successfully!"
         })
 })
@@ -89,22 +95,27 @@ const getShopOrders = AsyncHandler(async (req, res) => {
         })
 })
 
-const updateOrderStatus = AsyncHandler(async (req, res) => {
+const updateOrder = AsyncHandler(async (req, res) => {
     const { orderId } = req.params;
-    const { status } = req.body;
-    console.log(orderId, status)
+    const { status , riderId} = req.body;
+    console.log(orderId, status, riderId)
+   
+    let updateOrderData = {
+        status: status && status, 
+        riderId: riderId && riderId
+    }
 
-    const updatedOrderStatus = await Order.findByIdAndUpdate(orderId, { status: status })
+    const updatedOrder = await Order.findByIdAndUpdate(orderId,updateOrderData)
 
-    if (!updatedOrderStatus) {
-        throw ApiError(500, "Server error, Order status couldn't updated!")
+    if (!updatedOrder) {
+        throw ApiError(500, "Server error, Order couldn't updated!")
     }
 
     return res
         .status(200)
         .json({
-            updatedOrderStatus,
-            message: "order status updated successfully!"
+            updatedOrder,
+            message: "order updated successfully!"
         })
 })
 
@@ -125,6 +136,6 @@ export {
     getOrderByOrderId,
     getAllOrders,
     getShopOrders,
-    updateOrderStatus,
+    updateOrder,
     deleteOrder
 }

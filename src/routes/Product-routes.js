@@ -4,6 +4,7 @@ import {
     createProduct,
     deleteProduct,
     getAllProducts,
+    searchProduct,
     getProductByProductId,
     updateProduct
 } from "../controllers/Product-controller.js";
@@ -13,6 +14,7 @@ const router = Router();
 
 router.route("/create-new-product").post(isUserAuthenticated, upload.single("image") , createProduct);
 router.route("/get-product/:productId").get( getProductByProductId);
+router.route("/search-product").get( searchProduct);
 router.route("/get-all-products/:shopId").get(getAllProducts);
 router.route("/update-product/:productId").patch(isUserAuthenticated, upload.single("image"), updateProduct);
 router.route("/delete-product/:productId").delete(isUserAuthenticated, deleteProduct)

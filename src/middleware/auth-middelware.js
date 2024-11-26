@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken"
 const isUserAuthenticated = AsyncHandler(async(req, res, next) => {
   try {
       const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
-
+    
       if (!token) {
           throw new ApiError(502, "token is required!")
       }

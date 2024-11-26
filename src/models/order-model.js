@@ -61,9 +61,11 @@ const orderSchema = new Schema({
         type: Number,
         required: true
     },
+    riderId:{
+        type: String,
+    },
     status:{
         type: String,
-        required: true
     }
 }, {timestamps: true})
 
