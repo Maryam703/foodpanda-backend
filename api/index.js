@@ -9,7 +9,9 @@ const app = express({
     path : "../.env"
 });
 
-app.use("/", appRoutes)
+// app.use("/", appRoutes)
+
+app.get('/',(req,resp)=>"<h1>I'm Running.</h1>")
 
 dbConnect()
 .then(()=>{
