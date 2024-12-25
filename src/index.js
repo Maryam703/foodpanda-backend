@@ -20,3 +20,6 @@ dbConnect()
 .catch((error) => {
     console.log(`mongodb connection error, ${error}`)
 })
+
+
+export default app
