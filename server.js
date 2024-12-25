@@ -1,15 +1,13 @@
 import express from "express";
 import dotenv from "dotenv";
-import { dbConnect } from "./db/connect.js";
-import appRoutes from "./app.js"
+import { dbConnect } from "./api/db/connect.js";
+import appRoutes from "./api/app.js"
 
 dotenv.config()
 
 const app = express();
 
-// app.use("/", appRoutes);
-
-app.get("/", (req, res) => res.send("Express on Vercel"));
+app.use("/", appRoutes);
 
 
 
