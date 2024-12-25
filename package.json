@@ -1,11 +1,12 @@
 {
   "name": "foodpanda-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "api/index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
+    "start": "node  api/index.js",
+    "dev": "nodemon -r dotenv/config --experimental-json-modules api/index.js"
   },
   "author": "maryam rizwan",
   "license": "ISC",
