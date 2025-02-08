@@ -20,7 +20,7 @@ const isUserAuthenticated = AsyncHandler(async(req, res, next) => {
       let loggedInUser = await User.findById(veifiedToken?._id);
   
       if (!loggedInUser) {
-          throw new ApiError(402, "Invalid Access token!")
+          throw new ApiError(402, "user not found!")
       }
   
       req.user = loggedInUser;
@@ -28,7 +28,7 @@ const isUserAuthenticated = AsyncHandler(async(req, res, next) => {
       next();
 
   } catch (error) {
-    next(new ApiError(500, error?.message || "User verification failed!"));
+    throw new ApiError(500, "user verification failed!")
   }
 })
 
