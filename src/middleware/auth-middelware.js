@@ -28,7 +28,7 @@ const isUserAuthenticated = AsyncHandler(async(req, res, next) => {
       next();
 
   } catch (error) {
-    return error?.message || "user verification failed!"
+    next(new ApiError(500, error?.message || "User verification failed!"));
   }
 })
 
