@@ -14,13 +14,13 @@ const isUserAuthenticated = AsyncHandler(async(req, res, next) => {
       let veifiedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
      
       if (!veifiedToken) {
-          throw new ApiError(402, "token is invalid!")
+          throw new ApiError(402, "Unauthorized request!")
       }
   
       let loggedInUser = await User.findById(veifiedToken?._id);
   
       if (!loggedInUser) {
-          throw new ApiError(402, "user not found!")
+          throw new ApiError(402, "Invalid Access token!")
       }
   
       req.user = loggedInUser;
@@ -28,7 +28,7 @@ const isUserAuthenticated = AsyncHandler(async(req, res, next) => {
       next();
 
   } catch (error) {
-    throw new ApiError(500, "user verification failed!")
+    throw new ApiError(401, "user verification failed!")
   }
 })
 
